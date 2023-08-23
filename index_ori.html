@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Bosmonster Timer</title>
+    <style>
+        @keyframes blink {
+
+            0%,
+            100% {
+                background-color: red;
+            }
+
+            50% {
+                background-color: rgba(255, 0, 0, 0.07);
+            }
+            0%,
+            100% {
+                background-color: red;
+            }
+
+            50% {
+                background-color: rgba(255, 0, 0, 0.07);
+            }
+       
+        }
+
+        body.blink {
+            animation: blink 2s infinite;
+        }
+
+        body{
+            width: 100%;
+            height: 100vh;
+        }
+        .container {
+            width: 500px;
+            padding: 30px;
+          border: 1px solid #efefef;
+          height: 100vh;
+
+        }
+        button{
+            border: none;
+            padding:5px 10px;
+            border-radius: 5px;
+            margin-left: 10px;
+            background-color: rgb(124, 124, 208);
+            color: white;
+            font-size: 16px;
+        }
+        ul{
+            margin-top: 20px;
+        }
+        li{
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            border: 1px solid #efefef;
+            margin-bottom: 5px;
+            
+        }
+        h1{
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid container text-center">
+        <h1 style="margin-bottom: 40px;">Bossmonster</h1>
+     <div>
+            <label>이름:
+                <input type="text" id="nameInput" style="width: 150px;">
+            </label>
+    
+            <label>시간(분):
+                <input id="timeInput" type="number" style="width: 50px;">
+            </label>
+            <button id="addButton">추가하기</button>
+     </div>
+
+        <ul id="todoList"></ul>
+        <audio id="alarmSound" src="https://codeeatswin.github.io/02.mp3" preload="auto"></audio>
+    </div>
+    <script>
+        const nameInput = document.getElementById("nameInput");
+        const timeInput = document.getElementById("timeInput");
+        const addButton = document.getElementById("addButton");
+        const todoList = document.getElementById("todoList");
+        const alarmSound = document.getElementById("alarmSound");
+        const body = document.querySelector("body");
+
+        const timers = JSON.parse(localStorage.getItem("timers")) || {};
+        let blinking = false;
+        let blinkTimeout;
+
+        function requestNotificationPermission() {
+            if (Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+        }
+
+
+        function blinkScreen() {
+            if (!blinking) {
+                body.classList.add("blink");
+                blinking = true;
+            }
+            clearTimeout(blinkTimeout);
+            blinkTimeout = setTimeout(() => {
+                body.classList.remove("blink");
+                blinking = false;
+            }, 5000);
+        }
+
+        function showNotification(name) {
+            if (Notification.permission === "granted") {
+                const notification = new Notification("⏰보스잡을 시간이 되었습니다!", {
+                    body: `할 일 "${name}"가 완료되었습니다.`,
+                    requireInteraction: true
+                });
+ 
+               notification.addEventListener("click", () => {
+                    body.classList.remove("blink");
+                    clearTimeout(blinkTimeout);
+                    blinking = false;
+                    notification.close();
+                });
+            }
+        }
+
+        function removeItem(name) {
+            delete timers[name];
+            localStorage.setItem("timers", JSON.stringify(timers));
+            const itemToRemove = document.getElementById(name);
+            if (itemToRemove) {
+                itemToRemove.remove();
+            }
+        }
+
+        function addItemToList(name, time) {
+            const listItem = document.createElement("li");
+            listItem.id = name;
+
+            const textSpan = document.createElement("span");
+            textSpan.textContent = `${name} - ${time}:00`;
+            listItem.appendChild(textSpan);
+
+            const removeButton = document.createElement("button");
+            removeButton.textContent = "삭제하기";
+            removeButton.addEventListener("click", () => {
+                removeItem(name);
+            });
+            listItem.appendChild(removeButton);
+
+            todoList.appendChild(listItem);
+        }
+
+        addButton.addEventListener("click", () => {
+            const name = nameInput.value.trim();
+            const time = parseInt(timeInput.value, 10);
+
+            if (name && time > 0) {
+                requestNotificationPermission();
+
+                addItemToList(name, time);
+                timers[name] = {
+                    minutes: time,
+                    seconds: 0,
+                    finished: false
+                };
+                localStorage.setItem("timers", JSON.stringify(timers));
+            }
+            nameInput.value="";
+            timeInput.value="";
+        });
+
+        function updateTimers() {
+            let finishedTask = false;
+
+            Object.keys(timers).forEach(name => {
+                const timer = timers[name];
+                if (timer.minutes === 0 && timer.seconds === 0) {
+                    if (!timer.finished) {
+                        finishedTask = true;
+                        timer.finished = true;
+                        blinkScreen();
+                        alarmSound.play();
+                        showNotification(name);
+
+                        setTimeout(() => {
+                            removeItem(name);
+                        }, 5000);
+                    }
+                } else {
+                    if (timer.seconds === 0) {
+                        timer.minutes -= 1;
+                        timer.seconds = 59;
+                    } else {
+                        timer.seconds -= 1;
+                    }
+                }
+
+                const item = document.getElementById(name);
+                if (item) {
+                    item.querySelector("span").textContent =
+                        `${name} - ${timer.minutes.toString().padStart(2, "0")}:${timer.seconds.toString().padStart(2, "0")}`;
+                }
+            });
+
+            // if (!finishedTask && blinking) {
+            //     body.classList.remove("blink");
+            //     clearTimeout(blinkTimeout);
+            //     blinking = false;
+            // }
+            localStorage.setItem("timers", JSON.stringify(timers));
+        }
+
+        setInterval(updateTimers, 1000);
+
+        // 페이지 로드 시 저장된 타이머 항목들을 가져옵니다.
+        Object.keys(timers).forEach(name => {
+            addItemToList(name, timers[name].minutes);
+        });
+    </script>
+
+</body>
+
+</html>
