@@ -80,11 +80,15 @@
             box-shadow: inset 0px 0px 10px 6px rgba(255, 0, 0, 0.3);
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body>
     <div class="container-fluid container text-center">
-        <h1 style="margin-bottom: 40px;">Bossmonster</h1>
+       <div style="display: flex; align-items: center; margin-bottom: 40px; justify-content: center;">
+            <h1>Bossmonster</h1>
+            <button id="soundBtn" style="margin-left: 20px; background-color: rgb(233, 82, 18);"><i id="soundMute" class="fa-solid fa-volume-high"></i></button>
+       </div>
         <div>
             <label>이름:
                 <input type="text" id="nameInput" style="width: 150px;">
@@ -97,6 +101,7 @@
         </div>
 
         <ul id="todoList"></ul>
+<!--         <audio id="alarmSound" src="02.mp3" preload="auto"></audio> -->
         <audio id="alarmSound" src="https://codeeatswin.github.io/02.mp3" preload="auto"></audio>
     </div>
     <script>
@@ -105,11 +110,35 @@
         const addButton = document.getElementById("addButton");
         const todoList = document.getElementById("todoList");
         const alarmSound = document.getElementById("alarmSound");
+        const soundBtn = document.getElementById("soundBtn");
+        const soundMute = document.getElementById("soundMute");
         const body = document.querySelector("body");
 
         const timers = JSON.parse(localStorage.getItem("timers")) || {};
         let blinking = false;
         let blinkTimeout;
+        let soundOnOff =true;
+
+        // soundBtn.addEventListener("click",() => {
+
+        //     soundMute.classList.remove("fa-volume-high");
+        //     soundMute.classList.add("fa-volume-xmark");
+        //     console.log(soundMute)
+        //         });
+
+        soundBtn.addEventListener("click", () => {
+    if (soundMute.classList.contains("fa-volume-high")) {
+        soundMute.classList.remove("fa-volume-high");
+        soundMute.classList.add("fa-volume-xmark");
+        soundOnOff = false
+    } else {
+        soundMute.classList.remove("fa-volume-xmark");
+        soundMute.classList.add("fa-volume-high");
+        soundOnOff = false
+    }
+    console.log(soundMute);
+});
+
 
         function requestNotificationPermission() {
             if (Notification.permission !== "granted") {
@@ -203,7 +232,9 @@
                         finishedTask = true;
                         timer.finished = true;
                         blinkScreen();
-                        alarmSound.play();
+                        if (soundOnOff) {
+                            alarmSound.play();
+                        }
                         showNotification(name);
                         // setTimeout(() => {
                         //     removeItem(name);
